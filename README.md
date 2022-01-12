@@ -1,5 +1,6 @@
 # REAL-MBRL
 Code for the MSc thesis project: REAL Reinforcement Learning - Planning with adversarial models.
+Thesis available at http://repository.tudelft.nl/.
 
 ## What is included
 
