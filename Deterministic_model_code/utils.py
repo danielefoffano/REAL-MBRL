@@ -1,9 +1,5 @@
-import numpy as np
-
-# Model
 import torch
-from torch.distributions import Categorical
-from torch.distributions import MultivariateNormal
+from torch.distributions import Categorical, MultivariateNormal
 
 def _log_summary(ep_len, ep_ret, ep_num, mod_loss):
     
@@ -20,8 +16,9 @@ def _log_summary(ep_len, ep_ret, ep_num, mod_loss):
     print(f"Episode #{ep_num:} | Avg Episode length: {ep_len:} | Avg Episode return: {ep_ret:} | Avg Model Loss: {mod_loss:} |")#, end="\r")
 
 def rollout(policy, env, render):
-
-  for n in range(5):
+    
+  # Rollout until user kills process
+  for n in range(100):
     obs = env.reset()
     done = False
     
@@ -32,13 +29,13 @@ def rollout(policy, env, render):
     ep_len = 0            # episodic length
     ep_ret = 0            # episodic return
     
-    while not done:
+    while not done and t <=1000:
         t += 1
         action = policy(obs)
         
         if env.action_space.__class__.__name__ == 'Discrete':
             
-            # Query action from policy and run it
+            # Query deterministic action from policy and run it
             
             dist = Categorical(logits = action)
 
@@ -51,9 +48,8 @@ def rollout(policy, env, render):
             ep_ret += rew
         
         else:
-
             act_dim = env.action_space.shape[0]
-            cov_var = torch.full(size=(act_dim,), fill_value=0.1)
+            cov_var = torch.full(size=(act_dim,), fill_value=0.5)
             cov_mat = torch.diag(cov_var)
             
             dist = MultivariateNormal(action, cov_mat)
@@ -75,7 +71,6 @@ def rollout(policy, env, render):
 
     # Track episodic length
     ep_len = t
-
     # returns episodic length and return in this iteration
     yield ep_len, ep_ret
 
@@ -84,11 +79,8 @@ def eval_policy(policy= None, env = None, render=False, i = None, mod_loss = Non
     # Rollout with the policy and environment, and log each episode's data
     tot = 0
     avg_len = 0
-
     for ep_num, (ep_len, ep_ret) in enumerate(rollout(policy, env, render)):
         tot += ep_ret
         avg_len += ep_len
-
-    _log_summary(ep_len=avg_len/5, ep_ret=tot/5, ep_num=i, mod_loss = mod_loss)
-    
-    return tot/5
+    _log_summary(ep_len=avg_len/100, ep_ret=tot/100, ep_num=i, mod_loss = mod_loss)
+    return tot/100
