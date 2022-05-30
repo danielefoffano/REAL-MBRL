@@ -96,7 +96,6 @@ class REAL:
         self.ALPHA = Params.ALPHA
         self.MODEL_BATCH_SIZE = Params.MODEL_BATCH_SIZE
         self.MODEL_EPOCHS = Params.MODEL_EPOCHS
-        #self.N_ROLLOUTS = Params.N_ROLLOUTS
         self.DATASET_SIZE = Params.DATASET_SIZE
         self.GAMMA = Params.GAMMA
         self.POLICY_HIDDEN_SIZE = Params.POLICY_HIDDEN_SIZE
@@ -127,7 +126,7 @@ class REAL:
         self.actor.to(torch.device("cpu"))
         self.actor.dev = torch.device("cpu")
         
-        while len(data_in) < self.SAMPLES_FOR_MODEL:#for i in range(n_rolls):
+        while len(data_in) < self.SAMPLES_FOR_MODEL:
 
             obs = self.env.reset()
 
@@ -221,12 +220,10 @@ class REAL:
                     self.adam_model[model_i].zero_grad()
                     self.adam_rew.zero_grad()
 
-                    loss_model = criterion_model(out_m, label_batch)#.to(self.dev))
-                    loss_rew = criterion_rew(out_r, rew_batch)#.to(self.dev))
+                    loss_model = criterion_model(out_m, label_batch)
+                    loss_rew = criterion_rew(out_r, rew_batch)
                     
                     losses.append(loss_model.item())
-
-                    #print("Model loss: {}".format(loss))
 
                     loss_model.backward()
                     loss_rew.backward()
@@ -280,15 +277,14 @@ class REAL:
         
         # If algorithm is model based, we just want the "done" function
         if self.MODEL_BASED:        
-            #_,_,done,_ = self.env.step(action)
             # Only for Cartpole
-            
-            done = bool(
-                obs[0] < -self.env.x_threshold
-                or obs[0] > self.env.x_threshold
-                or obs[2] < -self.env.theta_threshold_radians
-                or obs[2] > self.env.theta_threshold_radians
-            )
+            if self.ENV_NAME.startswith("CartPole"):
+                done = bool(
+                    obs[0] < -self.env.x_threshold
+                    or obs[0] > self.env.x_threshold
+                    or obs[2] < -self.env.theta_threshold_radians
+                    or obs[2] > self.env.theta_threshold_radians
+                )
             
         else:
             obs, r, done, _ = self.env.step(action)
@@ -380,8 +376,6 @@ class REAL:
         batch_rtgs = self.compute_rtgs(batch_rews)
         batch_adv_acts = torch.tensor(batch_adv_acts, dtype=torch.float, device = self.dev)
         batch_adv_obs = torch.tensor(batch_adv_obs, dtype=torch.float, device = self.dev)
-        
-        #print("Average rollout length: {}".format(np.mean(batch_lens)))
 
         return batch_obs, batch_acts, batch_log_probs, batch_rtgs, batch_lens, batch_adv_acts, batch_adv_obs
     
@@ -397,7 +391,7 @@ class REAL:
             discounted_reward = 0 # The discounted reward so far
 
             # Iterate through all rewards in the episode. We go backwards for smoother calculation of each
-            # discounted return (think about why it would be harder starting from the beginning)
+            # discounted return
             for rew in reversed(ep_rews):
                 discounted_reward = rew + discounted_reward * self.GAMMA
                 batch_rtgs.insert(0, discounted_reward)
@@ -493,15 +487,6 @@ class REAL:
         return V, log_probs
         
     def learn(self, total_timesteps):
-        """
-          Train the actor and critic networks. Here is where the main PPO algorithm resides.
-          Parameters:
-            total_timesteps - the total number of timesteps to train for
-          Return:
-            None
-        """
-        #print(f"Learning... Running {self.ROLLOUT_LEN} timesteps per episode, ", end='')
-        #print(f"{self.timesteps_per_batch} timesteps per batch for a total of {total_timesteps} timesteps")
         
         t_so_far = 0 # Timesteps simulated so far
         i_so_far = 0 # Iterations ran so far
@@ -589,6 +574,6 @@ class REAL:
             
             self.rewards_hist.append(avg_rew)
 
-            if i_so_far == self.TOTAL_ITERATIONS:#400: #avg_rew >= 200:
+            if i_so_far == self.TOTAL_ITERATIONS:
                 print("Terminating.")
                 break

@@ -1,6 +1,6 @@
 class Params:
-    ADVERSARIAL = False
-    MODEL_BASED = False
+    ADVERSARIAL = True
+    MODEL_BASED = True
     N_ROLLOUTS = 200
     ALPHA = 5e-3                        # learning rate
     MODEL_BATCH_SIZE = 200              # how many batches to divide the roll-out transitions into
